@@ -24,12 +24,16 @@ extern "C" {
   #include "libmodbus/modbus.h"
 }
 
+
 #include <Arduino.h>
+#define USE_STATIC_ASSIGN
 
 #define COILS             0
 #define DISCRETE_INPUTS   1
 #define HOLDING_REGISTERS 2
 #define INPUT_REGISTERS   3
+
+#define MAX_BUFFER_SIZE 32
 
 class ModbusClient {
 
@@ -220,7 +224,10 @@ private:
   int _address;
   int _nb;
 
-  void* _values;
+#ifdef USE_STATIC_ASSIGN
+  uint8_t _buffer[MAX_BUFFER_SIZE];
+#endif
+  void* _values = _buffer;
   int _available;
   int _read;
   int _availableForWrite;

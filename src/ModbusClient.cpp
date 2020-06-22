@@ -26,7 +26,9 @@ ModbusClient::ModbusClient(unsigned long defaultTimeout) :
   _timeout(defaultTimeout),
   _defaultId(0x00),
   _transmissionBegun(false),
+#ifndef USE_STATIC_ASSIGN
   _values(NULL),
+#endif
   _available(0),
   _read(0),
   _availableForWrite(0),
@@ -36,9 +38,11 @@ ModbusClient::ModbusClient(unsigned long defaultTimeout) :
 
 ModbusClient::~ModbusClient()
 {
+#ifndef USE_STATIC_ASSIGN
   if (_values != NULL) {
     free(_values);
   }
+#endif
 
   if (_mb != NULL) {
     modbus_free(_mb);
@@ -46,7 +50,7 @@ ModbusClient::~ModbusClient()
 }
 
 int ModbusClient::begin(modbus_t* mb, int defaultId)
-{
+{ 
   end();
 
   _mb = mb;
@@ -77,12 +81,12 @@ int ModbusClient::begin(modbus_t* mb, int defaultId)
 
 void ModbusClient::end()
 {
+#ifndef USE_STATIC_ASSIGN
   if (_values != NULL) {
     free(_values);
-
     _values = NULL;
   }
-
+#endif
   if (_mb != NULL) {
     modbus_close(_mb);
     modbus_free(_mb);
@@ -225,15 +229,18 @@ int ModbusClient::beginTransmission(int id, int type, int address, int nb)
   }
 
   int valueSize = (type == COILS) ? sizeof(uint8_t) : sizeof(uint16_t);
-
+#ifdef USE_STATIC_ASSIGN
+  if ((nb * valueSize) > MAX_BUFFER_SIZE){
+    errno = ENOMEM;
+    return 0;
+  }   
+#else
   _values = realloc(_values, nb * valueSize);
-
+#endif
   if (_values == NULL) {
     errno = ENOMEM;
-
     return 0;
   }
-
   memset(_values, 0x00, nb * valueSize);
 
   _transmissionBegun = true;
@@ -322,7 +329,15 @@ int ModbusClient::requestFrom(int id, int type, int address, int nb)
 
   int valueSize = (type == COILS || type == DISCRETE_INPUTS) ? sizeof(uint8_t) : sizeof(uint16_t);
 
+
+#ifdef USE_STATIC_ASSIGN
+  if ((nb * valueSize) > MAX_BUFFER_SIZE){
+    errno = ENOMEM;
+    return 0;
+  }   
+#else
   _values = realloc(_values, nb * valueSize);
+#endif
 
   if (_values == NULL) {
     errno = ENOMEM;
