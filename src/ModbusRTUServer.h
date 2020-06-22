@@ -36,7 +36,7 @@ public:
    *
    * Return 1 on success, 0 on failure
    */
-  int begin(int id, unsigned long baudrate, uint16_t config = SERIAL_8N1);
+  int begin(int id, unsigned long baudrate, uint16_t config = 0);
 
   /**
    * Poll interface for requests

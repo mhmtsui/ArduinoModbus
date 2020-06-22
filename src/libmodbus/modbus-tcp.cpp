@@ -29,8 +29,16 @@
 # define close closesocket
 #elif defined(ARDUINO)
 #ifndef DEBUG
-#define printf(...) {}
+#define modbus_printf(...) {}
 #define fprintf(...) {}
+#else
+#include <LibPrintf.h>
+#define mosbus_printf(_fmt, ...) printf(_fmt, ## __VA_ARGS__)
+#define modbus_fprintf(_file, _fmt, ...) printf(_fmt, ## __VA_ARGS__) 
+#endif
+#define USE_STATIC_ASSIGN
+#ifdef USE_STATIC_ASSIGN
+#include "modbus-static.h"
 #endif
 #else
 # include <sys/socket.h>
@@ -395,7 +403,7 @@ static int _modbus_tcp_connect(modbus_t *ctx)
     }
 
     if (ctx->debug) {
-        printf("Connecting to %s:%d\n", ctx_tcp->ip, ctx_tcp->port);
+        modbus_printf("Connecting to %s:%d\n", ctx_tcp->ip, ctx_tcp->port);
     }
 
     addr.sin_family = AF_INET;
@@ -469,7 +477,7 @@ static int _modbus_tcp_pi_connect(modbus_t *ctx)
             _modbus_tcp_set_ipv4_options(s);
 
         if (ctx->debug) {
-            printf("Connecting to [%s]:%s\n", ctx_tcp_pi->node, ctx_tcp_pi->service);
+            modbus_printf("Connecting to [%s]:%s\n", ctx_tcp_pi->node, ctx_tcp_pi->service);
         }
 
         rc = _connect(s, ai_ptr->ai_addr, ai_ptr->ai_addrlen, &ctx->response_timeout);
@@ -780,7 +788,7 @@ int modbus_tcp_accept(modbus_t *ctx, int *s)
     }
 
     if (ctx->debug) {
-        printf("The client connection from %s is accepted\n",
+        modbus_printf("The client connection from %s is accepted\n",
                inet_ntoa(addr.sin_addr));
     }
 
@@ -812,7 +820,7 @@ int modbus_tcp_pi_accept(modbus_t *ctx, int *s)
     }
 
     if (ctx->debug) {
-        printf("The client connection is accepted.\n");
+        modbus_printf("The client connection is accepted.\n");
     }
 
     return ctx->s;
@@ -937,8 +945,11 @@ modbus_t* modbus_new_tcp(const char *ip, int port)
         return NULL;
     }
 #endif
-
+#ifdef USE_STATIC_ASSIGN
+    ctx = (modbus_t *) &_sys_mb;
+#else
     ctx = (modbus_t *)malloc(sizeof(modbus_t));
+#endif
     _modbus_init_common(ctx);
 
     /* Could be changed after to reach a remote serial Modbus device */
@@ -946,7 +957,11 @@ modbus_t* modbus_new_tcp(const char *ip, int port)
 
     ctx->backend = &_modbus_tcp_backend;
 
+#ifdef USE_STATIC_ASSIGN
+    ctx->backend_data = &_sys_mb_tcp;
+#else
     ctx->backend_data = (modbus_tcp_t *)malloc(sizeof(modbus_tcp_t));
+#endif
     ctx_tcp = (modbus_tcp_t *)ctx->backend_data;
 
 #ifdef ARDUINO

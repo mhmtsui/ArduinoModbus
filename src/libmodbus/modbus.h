@@ -50,12 +50,16 @@ MODBUS_BEGIN_DECLS
 #define TRUE 1
 #endif
 
-#ifndef OFF
-#define OFF 0
+#ifndef MODBUS_OFF
+#define MODBUS_OFF 0
 #endif
 
-#ifndef ON
-#define ON 1
+#ifndef MODBUS_ON
+#define MODBUS_ON 1
+#endif
+
+#ifndef SERIAL_8N1
+#define SERAIL_8N1 0
 #endif
 
 /* Modbus function codes */

@@ -20,10 +20,14 @@
 #endif
 #ifdef ARDUINO
 #include <Arduino.h>
-
+//#define DEBUG
 #ifndef DEBUG
-#define printf(...) {}
+#define modbus_printf(...) {}
 #define fprintf(...) {}
+//#else
+//#include <LibPrintf.h>
+//#define modbus_printf(_fmt, ...) printf(_fmt, ## __VA_ARGS__)
+//#define modbus_fprintf(_file, _fmt, ...) printf(_fmt, ## __VA_ARGS__) 
 #endif
 #endif
 
@@ -179,7 +183,7 @@ int modbus_flush(modbus_t *ctx)
     rc = ctx->backend->flush(ctx);
     if (rc != -1 && ctx->debug) {
         /* Not all backends are able to return the number of bytes flushed */
-        printf("Bytes flushed (%d)\n", rc);
+        modbus_printf("Bytes flushed (%d)\n", rc);
     }
     return rc;
 }
@@ -231,8 +235,8 @@ static int send_msg(modbus_t *ctx, uint8_t *msg, int msg_length)
 
     if (ctx->debug) {
         for (i = 0; i < msg_length; i++)
-            printf("[%.2X]", msg[i]);
-        printf("\n");
+            modbus_printf("[%.2X]", msg[i]);
+        modbus_printf("\n");
     }
 
     /* In recovery mode, the write command will be issued until to be
@@ -408,9 +412,9 @@ int _modbus_receive_msg(modbus_t *ctx, uint8_t *msg, msg_type_t msg_type)
 
     if (ctx->debug) {
         if (msg_type == MSG_INDICATION) {
-            printf("Waiting for a indication...\n");
+            modbus_printf("Waiting for a indication...\n");
         } else {
-            printf("Waiting for a confirmation...\n");
+            modbus_printf("Waiting for a confirmation...\n");
         }
     }
 
@@ -479,7 +483,7 @@ int _modbus_receive_msg(modbus_t *ctx, uint8_t *msg, msg_type_t msg_type)
         if (ctx->debug) {
             int i;
             for (i=0; i < rc; i++)
-                printf("<%.2X>", msg[msg_length + i]);
+                modbus_printf("<%.2X>", msg[msg_length + i]);
         }
 
         /* Sums bytes received */
@@ -527,7 +531,7 @@ int _modbus_receive_msg(modbus_t *ctx, uint8_t *msg, msg_type_t msg_type)
     }
 
     if (ctx->debug)
-        printf("\n");
+        modbus_printf("\n");
 
     return ctx->backend->check_integrity(ctx, msg, msg_length);
 }
@@ -718,6 +722,7 @@ static int response_io_status(uint8_t *tab_io_status,
     return offset;
 }
 
+//extern "C" {
 /* Build the exception response */
 static int response_exception(modbus_t *ctx, sft_t *sft,
                               int exception_code, uint8_t *rsp,
@@ -748,6 +753,7 @@ static int response_exception(modbus_t *ctx, sft_t *sft,
 
     return rsp_length;
 }
+//}
 
 /* Send a response to the received request.
    Analyses the request and constructs a response.
@@ -863,7 +869,7 @@ int modbus_reply(modbus_t *ctx, const uint8_t *req,
 #else
             if (data == 0xFF00 || data == 0x0) {
 #endif
-                mb_mapping->tab_bits[mapping_address] = data ? ON : OFF;
+                mb_mapping->tab_bits[mapping_address] = data ? MODBUS_ON : MODBUS_OFF;
                 memcpy(rsp, req, req_length);
                 rsp_length = req_length;
             } else {
@@ -1744,7 +1750,7 @@ int modbus_connect(modbus_t *ctx)
         errno = EINVAL;
         return -1;
     }
-
+    modbus_printf("modbus connect\r\n");
     return ctx->backend->connect(ctx);
 }
 

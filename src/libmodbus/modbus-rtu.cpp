@@ -17,10 +17,18 @@
 
 #ifdef ARDUINO
 #include "../../../ArduinoRS485/src/ArduinoRS485.h"
-
+#define DEBUG
 #ifndef DEBUG
-#define printf(...) {}
-#define fprintf(...) {}
+#define modbus_printf(...) {}
+#define modbus_fprintf(...) {}
+#else
+#include <LibPrintf.h>
+#define modbus_printf(_fmt, ...) printf(_fmt, ## __VA_ARGS__)
+#define modbus_fprintf(_file, _fmt, ...) printf(_fmt, ## __VA_ARGS__) 
+#endif
+#define USE_STATIC_ASSIGN
+#ifdef USE_STATIC_ASSIGN
+#include "modbus-static.h"
 #endif
 #endif
 
@@ -377,7 +385,7 @@ static int _modbus_rtu_receive(modbus_t *ctx, uint8_t *req)
         ctx_rtu->confirmation_to_ignore = FALSE;
         rc = 0;
         if (ctx->debug) {
-            printf("Confirmation to ignore\n");
+            modbus_printf("Confirmation to ignore\n");
         }
     } else {
         rc = _modbus_receive_msg(ctx, req, MSG_INDICATION);
@@ -439,7 +447,7 @@ static int _modbus_rtu_check_integrity(modbus_t *ctx, uint8_t *msg,
      * CRC computing. */
     if (slave != ctx->slave && slave != MODBUS_BROADCAST_ADDRESS) {
         if (ctx->debug) {
-            printf("Request for slave %d ignored (not %d)\n", slave, ctx->slave);
+            modbus_printf("Request for slave %d ignored (not %d)\n", slave, ctx->slave);
         }
         /* Following call to check_confirmation handles this error */
         return 0;
@@ -483,7 +491,7 @@ static int _modbus_rtu_connect(modbus_t *ctx)
     modbus_rtu_t *ctx_rtu = ctx->backend_data;
 
     if (ctx->debug) {
-        printf("Opening %s at %d bauds (%c, %d, %d)\n",
+        modbus_printf("Opening %s at %d bauds (%c, %d, %d)\n",
                ctx_rtu->device, ctx_rtu->baud, ctx_rtu->parity,
                ctx_rtu->data_bit, ctx_rtu->stop_bit);
     }
@@ -654,7 +662,8 @@ static int _modbus_rtu_connect(modbus_t *ctx)
         return -1;
     }
 #elif defined(ARDUINO)
-    RS485.begin(ctx_rtu->baud, ctx_rtu->config);
+    //RS485.begin(ctx_rtu->baud, ctx_rtu->config);
+    RS485.begin(ctx_rtu->baud);
     RS485.receive();
 #else
     /* The O_NOCTTY flag tells UNIX that this program doesn't want
@@ -1356,12 +1365,27 @@ modbus_t* modbus_new_rtu(const char *device,
     }
 #endif
 
+#ifdef USE_STATIC_ASSIGN
+    ctx = (modbus_t *) &(_sys_mb);
+#else
     ctx = (modbus_t *)malloc(sizeof(modbus_t));
+#endif
+    modbus_printf("assign mb struct\r\n");
     _modbus_init_common(ctx);
     ctx->backend = &_modbus_rtu_backend;
+#ifdef USE_STATIC_ASSIGN    
+    modbus_printf("assign mb rtu struct\r\n");
+    ctx_rtu = (modbus_rtu_t *) &(_sys_mb_rtu);
+    modbus_printf("assign mb rtu backend data struct\r\n");
+    ctx->backend_data = (void *) (&(_sys_mb_rtu));
+#else
     ctx->backend_data = (modbus_rtu_t *)malloc(sizeof(modbus_rtu_t));
+    modbus_printf("assign mb rtu backend\r\n");
     ctx_rtu = (modbus_rtu_t *)ctx->backend_data;
+#endif
+    
 #ifdef ARDUINO
+    modbus_printf("assign config\r\n");
     ctx_rtu->baud = baud;
     ctx_rtu->config = config;
 #else
@@ -1403,6 +1427,6 @@ modbus_t* modbus_new_rtu(const char *device,
 #endif
 
     ctx_rtu->confirmation_to_ignore = FALSE;
-
+    modbus_printf("return pointer\r\n");
     return ctx;
 }
