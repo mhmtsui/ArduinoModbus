@@ -16,7 +16,7 @@
 #include <assert.h>
 
 #ifdef ARDUINO
-#include <ArduinoRS485.h>
+#include "../../../ArduinoRS485/src/ArduinoRS485.h"
 
 #ifndef DEBUG
 #define printf(...) {}
