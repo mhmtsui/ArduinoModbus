@@ -27,7 +27,7 @@ extern "C" {
 #include "ModbusRTUClient.h"
 
 ModbusRTUClientClass::ModbusRTUClientClass() :
-  ModbusClient(500)
+  ModbusClient(1000)
 {
 }
 
