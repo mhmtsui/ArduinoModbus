@@ -1239,9 +1239,7 @@ static int _modbus_rtu_flush(modbus_t *ctx)
 #elif defined(ARDUINO)
     (void)ctx;
 
-    while (RS485.available()) {
-        RS485.read();
-    }
+    RS485.purge();
 
     return 0;
 #else
@@ -1277,6 +1275,7 @@ static int _modbus_rtu_select(modbus_t *ctx, fd_set *rset,
         if (s_rc >= length_to_read) {
             break;
         }
+        delay(1);
     } while ((millis() - start) < wait_time_millis);
 
     if (s_rc == 0) {
